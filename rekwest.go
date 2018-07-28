@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -13,6 +14,16 @@ type Rekwest interface {
 	Method(string) Rekwest
 	// Body sets the request body.
 	Body(io.Reader) Rekwest
+	// StringBody uses the given string as the request body.
+	StringBody(string) Rekwest
+	// MarshalBody uses the given marshal func to marshal the given data into the
+	// request body. For JSON and XML payloads, you can use the JSONBody and
+	// XMLBody methods.
+	MarshalBody(interface{}, func(interface{}) ([]byte, error)) Rekwest
+	// JSONBody marshals the given data into JSON and uses it as the request body.
+	JSONBody(interface{}) Rekwest
+	// XMLBody marshals the given data into XML and uses it as the request body.
+	XMLBody(interface{}) Rekwest
 	// Target is used to decode the response into. It should be a pointer type
 	// or the changes will not be reflected.
 	Target(interface{}) Rekwest
@@ -40,6 +51,10 @@ type Rekwest interface {
 	// Client ensures the given *http.Client will be used for performing the
 	// request when calling `Do`.
 	Client(*http.Client) Rekwest
+	// Errors returns all errors that occurred when building the request.
+	Errors() []error
+	// OK returns true if no errors have been encountered when building the request.
+	OK() bool
 	// Do performs the request and returns possible errors.
 	Do() error
 }
@@ -66,4 +81,18 @@ func New(url string) Rekwest {
 		context:        context.Background(),
 		responseFormat: ResponseFormatJSON,
 	}
+}
+
+// Error is a basic wrapper around multiple errors.
+type Error struct {
+	Errors []error
+}
+
+func (e Error) Error() string {
+	var collected []string
+	for _, err := range e.Errors {
+		collected = append(collected, err.Error())
+	}
+	return strings.Join(collected, ", ")
+
 }

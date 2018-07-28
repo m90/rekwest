@@ -1,6 +1,7 @@
 package rekwest
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"encoding/xml"
@@ -8,11 +9,14 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 )
 
 type request struct {
 	client *http.Client
+
+	errors []error
 
 	url            string
 	method         string
@@ -26,9 +30,40 @@ type request struct {
 	timeout        *time.Duration
 }
 
+func (r *request) Errors() []error {
+	return r.errors
+}
+
+func (r *request) OK() bool {
+	return len(r.errors) == 0
+}
+
 func (r *request) Method(m string) Rekwest {
 	r.method = m
 	return r
+}
+
+func (r *request) StringBody(data string) Rekwest {
+	r.body = strings.NewReader(data)
+	return r
+}
+
+func (r *request) MarshalBody(data interface{}, marshalFunc func(interface{}) ([]byte, error)) Rekwest {
+	b, err := marshalFunc(data)
+	if err != nil {
+		r.errors = append(r.errors, err)
+	} else {
+		r.body = bytes.NewReader(b)
+	}
+	return r
+}
+
+func (r *request) JSONBody(data interface{}) Rekwest {
+	return r.MarshalBody(data, json.Marshal)
+}
+
+func (r *request) XMLBody(data interface{}) Rekwest {
+	return r.MarshalBody(data, xml.Marshal)
 }
 
 func (r *request) Body(b io.Reader) Rekwest {
@@ -93,6 +128,9 @@ type doResult struct {
 }
 
 func (r *request) Do() error {
+	if !r.OK() {
+		return Error{r.Errors()}
+	}
 	timeout := context.Background()
 	if r.timeout != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), *r.timeout)
@@ -101,6 +139,8 @@ func (r *request) Do() error {
 	}
 
 	receive := make(chan doResult)
+	defer close(receive)
+
 	go func() {
 		req, reqErr := http.NewRequest(r.method, r.url, r.body)
 		if reqErr != nil {
