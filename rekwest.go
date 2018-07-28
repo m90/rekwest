@@ -65,8 +65,9 @@ type ResponseFormat string
 
 // A list of supported `ResponseFormat`s.
 const (
-	ResponseFormatJSON ResponseFormat = "json"
-	ResponseFormatXML  ResponseFormat = "xml"
+	ResponseFormatJSON  ResponseFormat = "json"
+	ResponseFormatXML   ResponseFormat = "xml"
+	ResponseFormatBytes ResponseFormat = "raw"
 )
 
 // New creates a new Rekwest that will perform requests against the given URL.

@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -193,6 +194,12 @@ func (r *request) Do() error {
 				if err := xml.NewDecoder(result.res.Body).Decode(r.target); err != nil {
 					return err
 				}
+			case ResponseFormatBytes:
+				b, err := ioutil.ReadAll(result.res.Body)
+				if err != nil {
+					return err
+				}
+				reflect.ValueOf(r.target).Elem().Set(reflect.ValueOf(b))
 			default:
 				return fmt.Errorf("found unknown response format %s", r.responseFormat)
 			}
