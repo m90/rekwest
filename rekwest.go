@@ -82,16 +82,21 @@ func New(url string) Rekwest {
 	}
 }
 
-// Error is a basic wrapper around multiple errors.
-type Error struct {
+// MultiError is a basic wrapper around multiple errors.
+type MultiError struct {
 	Errors []error
 }
 
-func (e Error) Error() string {
+func (e MultiError) Error() string {
 	var collected []string
 	for _, err := range e.Errors {
 		collected = append(collected, err.Error())
 	}
 	return strings.Join(collected, ", ")
+}
 
+func (e *MultiError) append(errors ...error) {
+	for _, err := range errors {
+		e.Errors = append(e.Errors, err)
+	}
 }

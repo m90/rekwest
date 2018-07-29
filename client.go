@@ -16,7 +16,7 @@ import (
 type request struct {
 	client *http.Client
 
-	errors []error
+	multiErr MultiError
 
 	url            string
 	method         string
@@ -30,11 +30,11 @@ type request struct {
 }
 
 func (r *request) Errors() []error {
-	return r.errors
+	return r.multiErr.Errors
 }
 
 func (r *request) OK() bool {
-	return len(r.errors) == 0
+	return len(r.multiErr.Errors) == 0
 }
 
 func (r *request) Method(m string) Rekwest {
@@ -50,7 +50,7 @@ func (r *request) BytesBody(data []byte) Rekwest {
 func (r *request) MarshalBody(data interface{}, marshalFunc func(interface{}) ([]byte, error)) Rekwest {
 	b, err := marshalFunc(data)
 	if err != nil {
-		r.errors = append(r.errors, err)
+		r.multiErr.append(err)
 	} else {
 		return r.BytesBody(b)
 	}
@@ -123,7 +123,7 @@ type doResult struct {
 
 func (r *request) Do(targets ...interface{}) error {
 	if !r.OK() {
-		return Error{r.Errors()}
+		return r.multiErr
 	}
 
 	timeout := context.Background()
@@ -178,31 +178,31 @@ func (r *request) Do(targets ...interface{}) error {
 			}
 			return fmt.Errorf("request failed with status %d: %s", result.res.StatusCode, string(b))
 		}
+
 		for _, target := range targets {
-			if target == nil {
-				return nil
-			}
 			switch r.responseFormat {
 			case ResponseFormatJSON:
 				if err := json.NewDecoder(result.res.Body).Decode(target); err != nil {
-					return err
+					r.multiErr.append(err)
 				}
 			case ResponseFormatXML:
 				if err := xml.NewDecoder(result.res.Body).Decode(target); err != nil {
-					return err
+					r.multiErr.append(err)
 				}
 			case ResponseFormatBytes:
 				b, err := ioutil.ReadAll(result.res.Body)
 				if err != nil {
-					return err
+					r.multiErr.append(err)
 				}
 				reflect.ValueOf(target).Elem().Set(reflect.ValueOf(b))
 			default:
-				return fmt.Errorf("found unknown response format %s", r.responseFormat)
+				r.multiErr.append(fmt.Errorf("found unknown response format %s", r.responseFormat))
 			}
-			return nil
 		}
 	}
 
+	if !r.OK() {
+		return r.multiErr
+	}
 	return nil
 }

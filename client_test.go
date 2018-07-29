@@ -19,8 +19,8 @@ func TestRekwest(t *testing.T) {
 	tests := map[string]struct {
 		handler        http.HandlerFunc
 		setupFunc      func(Rekwest)
-		target         interface{}
-		expectedTarget interface{}
+		target         []interface{}
+		expectedTarget []interface{}
 		expectedError  error
 	}{
 		"default": {
@@ -28,11 +28,11 @@ func TestRekwest(t *testing.T) {
 				w.Write([]byte(`{"ok":true, "animal":"platypus"}`))
 			},
 			func(r Rekwest) {},
-			&responseType{},
-			&responseType{
+			[]interface{}{&responseType{}},
+			[]interface{}{&responseType{
 				OK:     true,
 				Animal: "platypus",
-			},
+			}},
 			nil,
 		},
 		"server error": {
@@ -40,8 +40,8 @@ func TestRekwest(t *testing.T) {
 				http.Error(w, "zalgo", http.StatusInternalServerError)
 			},
 			func(r Rekwest) {},
-			&responseType{},
-			&responseType{},
+			[]interface{}{},
+			[]interface{}{},
 			errors.New("request failed with status 500: zalgo"),
 		},
 		"basic auth": {
@@ -55,8 +55,8 @@ func TestRekwest(t *testing.T) {
 			func(r Rekwest) {
 				r.BasicAuth("username", "secret")
 			},
-			nil,
-			nil,
+			[]interface{}{},
+			[]interface{}{},
 			nil,
 		},
 		"bytes body": {
@@ -71,8 +71,8 @@ func TestRekwest(t *testing.T) {
 			func(r Rekwest) {
 				r.BytesBody([]byte("yes")).ResponseFormat(ResponseFormatBytes)
 			},
-			&[]byte{},
-			&[]byte{'n', 'o'},
+			[]interface{}{&[]byte{}},
+			[]interface{}{&[]byte{'n', 'o'}},
 			nil,
 		},
 		"bad response format": {
@@ -82,8 +82,8 @@ func TestRekwest(t *testing.T) {
 			func(r Rekwest) {
 				r.ResponseFormat("zalgo")
 			},
-			&responseType{},
-			&responseType{},
+			[]interface{}{&[]byte{}},
+			[]interface{}{&[]byte{}},
 			errors.New("found unknown response format zalgo"),
 		},
 	}
@@ -93,7 +93,7 @@ func TestRekwest(t *testing.T) {
 			defer ts.Close()
 			r := New(ts.URL)
 			test.setupFunc(r)
-			err := r.Do(test.target)
+			err := r.Do(test.target...)
 			if test.expectedError != nil {
 				if err == nil {
 					t.Errorf("Expected %v, got nil", test.expectedError)
