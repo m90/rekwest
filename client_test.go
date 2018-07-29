@@ -59,7 +59,7 @@ func TestRekwest(t *testing.T) {
 			nil,
 			nil,
 		},
-		"string body": {
+		"bytes body": {
 			func(w http.ResponseWriter, r *http.Request) {
 				b, _ := ioutil.ReadAll(r.Body)
 				if string(b) == "yes" {
@@ -69,7 +69,7 @@ func TestRekwest(t *testing.T) {
 				w.Write([]byte("yes"))
 			},
 			func(r Rekwest) {
-				r.StringBody("yes").ResponseFormat(ResponseFormatBytes)
+				r.BytesBody([]byte("yes")).ResponseFormat(ResponseFormatBytes)
 			},
 			&[]byte{},
 			&[]byte{'n', 'o'},
@@ -93,8 +93,7 @@ func TestRekwest(t *testing.T) {
 			defer ts.Close()
 			r := New(ts.URL)
 			test.setupFunc(r)
-			r.Target(test.target)
-			err := r.Do()
+			err := r.Do(test.target)
 			if test.expectedError != nil {
 				if err == nil {
 					t.Errorf("Expected %v, got nil", test.expectedError)

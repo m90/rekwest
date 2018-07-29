@@ -14,8 +14,8 @@ type Rekwest interface {
 	Method(string) Rekwest
 	// Body sets the request body.
 	Body(io.Reader) Rekwest
-	// StringBody uses the given string as the request body.
-	StringBody(string) Rekwest
+	// bytesBody uses the given byte array as the request body.
+	BytesBody([]byte) Rekwest
 	// MarshalBody uses the given marshal func to marshal the given data into the
 	// request body. For JSON and XML payloads, you can use the JSONBody and
 	// XMLBody methods.
@@ -24,9 +24,6 @@ type Rekwest interface {
 	JSONBody(interface{}) Rekwest
 	// XMLBody marshals the given data into XML and uses it as the request body.
 	XMLBody(interface{}) Rekwest
-	// Target is used to decode the response into. It should be a pointer type
-	// or the changes will not be reflected.
-	Target(interface{}) Rekwest
 	// Header sets the request header of the given key to the given value.
 	Header(string, string) Rekwest
 	// Headers sets the request headers for all key/value pairs in the
@@ -56,7 +53,8 @@ type Rekwest interface {
 	// OK returns true if no errors have been encountered when building the request.
 	OK() bool
 	// Do performs the request and returns possible errors.
-	Do() error
+	// The response body will encoded onto the passed target if given.
+	Do(...interface{}) error
 }
 
 // ResponseFormat is a string describing the expected encoding
@@ -67,7 +65,7 @@ type ResponseFormat string
 const (
 	ResponseFormatJSON  ResponseFormat = "json"
 	ResponseFormatXML   ResponseFormat = "xml"
-	ResponseFormatBytes ResponseFormat = "raw"
+	ResponseFormatBytes ResponseFormat = "bytes"
 )
 
 // New creates a new Rekwest that will perform requests against the given URL.

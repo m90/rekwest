@@ -17,17 +17,16 @@ $ go get github.com/m90/rekwest
 Perform a POST request, encoding the JSON response into `data`:
 
 ```go
-data := responseType{}
 req := rekwest.New("https://www.example.com/api/create-animal").
     Method(http.MethodPost).
     JSONBody(map[string]interface{}{
         "kind":     "platypus",
         "flappers": true,
     }).
-    Target(&data).
     BasicAuth("username", "secret")
 
-if err := req.Do(); err != nil {
+data := responseType{}
+if err := req.Do(&data); err != nil {
     panic(err)
 }
 ```

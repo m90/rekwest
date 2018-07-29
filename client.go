@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -22,7 +21,6 @@ type request struct {
 	url            string
 	method         string
 	body           io.Reader
-	target         interface{}
 	header         http.Header
 	basicAuth      *credentials
 	bearerToken    string
@@ -44,8 +42,8 @@ func (r *request) Method(m string) Rekwest {
 	return r
 }
 
-func (r *request) StringBody(data string) Rekwest {
-	r.body = strings.NewReader(data)
+func (r *request) BytesBody(data []byte) Rekwest {
+	r.body = bytes.NewReader(data)
 	return r
 }
 
@@ -54,7 +52,7 @@ func (r *request) MarshalBody(data interface{}, marshalFunc func(interface{}) ([
 	if err != nil {
 		r.errors = append(r.errors, err)
 	} else {
-		r.body = bytes.NewReader(b)
+		return r.BytesBody(b)
 	}
 	return r
 }
@@ -69,11 +67,6 @@ func (r *request) XMLBody(data interface{}) Rekwest {
 
 func (r *request) Body(b io.Reader) Rekwest {
 	r.body = b
-	return r
-}
-
-func (r *request) Target(t interface{}) Rekwest {
-	r.target = t
 	return r
 }
 
@@ -128,10 +121,11 @@ type doResult struct {
 	err error
 }
 
-func (r *request) Do() error {
+func (r *request) Do(targets ...interface{}) error {
 	if !r.OK() {
 		return Error{r.Errors()}
 	}
+
 	timeout := context.Background()
 	if r.timeout != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), *r.timeout)
@@ -184,14 +178,17 @@ func (r *request) Do() error {
 			}
 			return fmt.Errorf("request failed with status %d: %s", result.res.StatusCode, string(b))
 		}
-		if r.target != nil {
+		for _, target := range targets {
+			if target == nil {
+				return nil
+			}
 			switch r.responseFormat {
 			case ResponseFormatJSON:
-				if err := json.NewDecoder(result.res.Body).Decode(r.target); err != nil {
+				if err := json.NewDecoder(result.res.Body).Decode(target); err != nil {
 					return err
 				}
 			case ResponseFormatXML:
-				if err := xml.NewDecoder(result.res.Body).Decode(r.target); err != nil {
+				if err := xml.NewDecoder(result.res.Body).Decode(target); err != nil {
 					return err
 				}
 			case ResponseFormatBytes:
@@ -199,10 +196,11 @@ func (r *request) Do() error {
 				if err != nil {
 					return err
 				}
-				reflect.ValueOf(r.target).Elem().Set(reflect.ValueOf(b))
+				reflect.ValueOf(target).Elem().Set(reflect.ValueOf(b))
 			default:
 				return fmt.Errorf("found unknown response format %s", r.responseFormat)
 			}
+			return nil
 		}
 	}
 
