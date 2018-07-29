@@ -57,10 +57,12 @@ func (r *request) MarshalBody(data interface{}, marshalFunc func(interface{}) ([
 }
 
 func (r *request) JSONBody(data interface{}) Rekwest {
+	r.Header("Content-Type", contentTypeJSON)
 	return r.MarshalBody(data, json.Marshal)
 }
 
 func (r *request) XMLBody(data interface{}) Rekwest {
+	r.Header("Content-Type", contentTypeXML)
 	return r.MarshalBody(data, xml.Marshal)
 }
 

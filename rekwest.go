@@ -105,8 +105,10 @@ func inferTargetFormat(contentType string) (targetFormat, error) {
 }
 
 const (
-	acceptJSON = "application/json"
-	acceptXML  = "text/xml, application/xml"
+	acceptJSON      = "application/json"
+	acceptXML       = "text/xml, application/xml"
+	contentTypeJSON = "application/json"
+	contentTypeXML  = "application/xml"
 )
 
 // MultiError is a basic wrapper around multiple errors.
