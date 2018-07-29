@@ -206,7 +206,16 @@ func (r *request) Do(targets ...interface{}) error {
 				if err != nil {
 					r.multiErr.append(err)
 				}
-				reflect.ValueOf(target).Elem().Set(reflect.ValueOf(b))
+				v := reflect.ValueOf(target)
+				if k := v.Kind(); k != reflect.Ptr {
+					r.multiErr.append(fmt.Errorf("expected pointer kind, encountered %v when decoding into target element", k))
+					break
+				}
+				if s := v.Elem().Type().String(); s != "[]uint8" {
+					r.multiErr.append(fmt.Errorf("expected byte slice elem, encountered %s when decoding into target element", s))
+					break
+				}
+				v.Elem().Set(reflect.ValueOf(b))
 			}
 		}
 	}

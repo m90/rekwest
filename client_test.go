@@ -385,6 +385,17 @@ func TestRekwest(t *testing.T) {
 			[]interface{}{&[]byte{}},
 			errors.New("i'm just a bad transport"),
 		},
+		"bad target type": {
+			func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "text/plain")
+				w.Write([]byte("OK"))
+			},
+			func(r Rekwest) {
+			},
+			[]interface{}{&[]string{}},
+			[]interface{}{&[]string{}},
+			errors.New("expected byte slice elem, encountered []string when decoding into target element"),
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
