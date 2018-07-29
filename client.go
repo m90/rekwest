@@ -101,6 +101,12 @@ func (r *request) Context(ctx context.Context) Rekwest {
 }
 
 func (r *request) ResponseFormat(format ResponseFormat) Rekwest {
+	switch format {
+	case ResponseFormatJSON:
+		r.Header("Accept", acceptJSON)
+	case ResponseFormatXML:
+		r.Header("Accept", acceptXML)
+	}
 	r.responseFormat = format
 	return r
 }

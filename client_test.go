@@ -371,6 +371,57 @@ func TestRekwest(t *testing.T) {
 			[]interface{}{&[]byte{'1', '2'}},
 			nil,
 		},
+		"accept headers json": {
+			func(w http.ResponseWriter, r *http.Request) {
+				switch r.Header.Get("Accept") {
+				case "application/json":
+					w.Write([]byte(`{"ok":true,"animal":"platypus"}`))
+				case "text/xml, application/xml":
+					w.Write([]byte(`<responseType><ok>true</ok><animal>platypus</animal></responseType>`))
+				default:
+					http.NotFound(w, r)
+				}
+			},
+			func(r Rekwest) {
+				r.JSONBody(responseType{
+					OK: true,
+				}).ResponseFormat(ResponseFormatJSON)
+			},
+			[]interface{}{&responseType{}},
+			[]interface{}{&responseType{OK: true, Animal: "platypus"}},
+			nil,
+		},
+		"accept headers xml": {
+			func(w http.ResponseWriter, r *http.Request) {
+				switch r.Header.Get("Accept") {
+				case "application/json":
+					w.Write([]byte(`{"ok":true,"animal":"platypus"}`))
+				case "text/xml, application/xml":
+					w.Write([]byte(`<responseType><ok>true</ok><animal>platypus</animal></responseType>`))
+				default:
+					http.NotFound(w, r)
+				}
+			},
+			func(r Rekwest) {
+				r.XMLBody(responseType{
+					OK: true,
+				}).ResponseFormat(ResponseFormatXML)
+			},
+			[]interface{}{&responseType{}},
+			[]interface{}{&responseType{OK: true, Animal: "platypus"}},
+			nil,
+		},
+		"response format misconfigured": {
+			func(w http.ResponseWriter, r *http.Request) {
+				w.Write([]byte(`<responseType><ok>true</ok><animal>platypus</animal></responseType>`))
+			},
+			func(r Rekwest) {
+				r.ResponseFormat(ResponseFormatJSON)
+			},
+			[]interface{}{&responseType{}},
+			[]interface{}{&responseType{}},
+			errors.New("invalid character '<' looking for beginning of value"),
+		},
 		"client": {
 			func(w http.ResponseWriter, r *http.Request) {
 				time.Sleep(time.Second)

@@ -90,6 +90,11 @@ func inferTargetFormat(contentType string) (targetFormat, error) {
 	}
 }
 
+const (
+	acceptJSON = "application/json"
+	acceptXML  = "text/xml, application/xml"
+)
+
 // New creates a new Rekwest that will perform requests against the given URL.
 // It defaults to performing GET requests and no body, expecting JSON to be sent
 // in return.
