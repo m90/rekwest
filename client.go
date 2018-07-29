@@ -43,8 +43,7 @@ func (r *request) Method(m string) Rekwest {
 }
 
 func (r *request) BytesBody(data []byte) Rekwest {
-	r.body = bytes.NewReader(data)
-	return r
+	return r.Body(bytes.NewReader(data))
 }
 
 func (r *request) MarshalBody(data interface{}, marshalFunc func(interface{}) ([]byte, error)) Rekwest {
@@ -134,7 +133,6 @@ func (r *request) Do(targets ...interface{}) error {
 	}
 
 	receive := make(chan doResult)
-	defer close(receive)
 
 	go func() {
 		req, reqErr := http.NewRequest(r.method, r.url, r.body)
@@ -159,7 +157,7 @@ func (r *request) Do(targets ...interface{}) error {
 
 	select {
 	case <-timeout.Done():
-		return timeout.Err()
+		return fmt.Errorf("exceeded request timeout of %v", r.timeout)
 	case <-r.context.Done():
 		return r.context.Err()
 	case result := <-receive:
