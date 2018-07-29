@@ -192,8 +192,9 @@ func (r *request) Do(targets ...interface{}) error {
 				f, err := inferTargetFormat(result.res.Header.Get("Content-Type"))
 				if err != nil {
 					r.multiErr.append(err)
+				} else {
+					format = f
 				}
-				format = f
 			default:
 				r.multiErr.append(fmt.Errorf("found unknown response format %s", r.responseFormat))
 			}

@@ -25,6 +25,12 @@ func (b badTransport) RoundTrip(*http.Request) (*http.Response, error) {
 	return nil, errors.New("i'm just a bad transport")
 }
 
+type badReader int
+
+func (b badReader) Read([]byte) (int, error) {
+	return 0, errors.New("i'm just a bad reader")
+}
+
 func TestRekwest(t *testing.T) {
 	tests := map[string]struct {
 		handler        http.HandlerFunc
@@ -447,6 +453,39 @@ func TestRekwest(t *testing.T) {
 			[]interface{}{&[]string{}},
 			errors.New("expected byte slice elem, encountered []string when decoding into target element"),
 		},
+		"non pointer target": {
+			func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "text/plain")
+				w.Write([]byte("OK"))
+			},
+			func(r Rekwest) {
+			},
+			[]interface{}{[]string{}},
+			[]interface{}{[]string{}},
+			errors.New("expected pointer kind, encountered slice when decoding into target element"),
+		},
+		"bad body": {
+			func(w http.ResponseWriter, r *http.Request) {
+				w.Write([]byte("OK"))
+			},
+			func(r Rekwest) {
+				r.Body(badReader(0))
+			},
+			[]interface{}{&[]string{}},
+			[]interface{}{&[]string{}},
+			errors.New("i'm just a bad reader"),
+		},
+		"bad content type": {
+			func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "dunno/")
+				w.Write([]byte("OK"))
+			},
+			func(r Rekwest) {
+			},
+			[]interface{}{&[]byte{}},
+			[]interface{}{&[]byte{}},
+			errors.New("mime: expected token after slash"),
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -470,5 +509,12 @@ func TestRekwest(t *testing.T) {
 				t.Errorf("Expected %v, got %v", test.expectedTarget, test.target)
 			}
 		})
+	}
+}
+
+func TestRekwest_BadURL(t *testing.T) {
+	r := New("%%%bbbrrrrroookkkken%%251%%``")
+	if err := r.Do(); err == nil || err.Error() != "parse %%%bbbrrrrroookkkken%%251%%``: invalid URL escape \"%%%\"" {
+		t.Errorf("Unexpected error %v", err)
 	}
 }

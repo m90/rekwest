@@ -9,6 +9,20 @@ import (
 	"time"
 )
 
+// New creates a new Rekwest that will perform requests against the given URL.
+// It defaults to performing GET requests and no body, expecting JSON to be sent
+// in return.
+func New(url string) Rekwest {
+	return &request{
+		client:         http.DefaultClient,
+		url:            url,
+		method:         http.MethodGet,
+		header:         http.Header{},
+		context:        context.Background(),
+		responseFormat: ResponseFormatContentType,
+	}
+}
+
 // Rekwest is a chainable interface for building and performing HTTP requests.
 type Rekwest interface {
 	// Method sets the request Method.
@@ -94,20 +108,6 @@ const (
 	acceptJSON = "application/json"
 	acceptXML  = "text/xml, application/xml"
 )
-
-// New creates a new Rekwest that will perform requests against the given URL.
-// It defaults to performing GET requests and no body, expecting JSON to be sent
-// in return.
-func New(url string) Rekwest {
-	return &request{
-		client:         http.DefaultClient,
-		url:            url,
-		method:         http.MethodGet,
-		header:         http.Header{},
-		context:        context.Background(),
-		responseFormat: ResponseFormatContentType,
-	}
-}
 
 // MultiError is a basic wrapper around multiple errors.
 type MultiError struct {
