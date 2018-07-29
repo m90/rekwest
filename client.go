@@ -178,23 +178,35 @@ func (r *request) Do(targets ...interface{}) error {
 		}
 
 		for _, target := range targets {
+			var format targetFormat
 			switch r.responseFormat {
-			case ResponseFormatJSON:
+			case ResponseFormatJSON, ResponseFormatXML, ResponseFormatBytes:
+				format = targetFormat(r.responseFormat)
+			case ResponseFormatContentType:
+				f, err := inferTargetFormat(result.res.Header.Get("Content-Type"))
+				if err != nil {
+					r.multiErr.append(err)
+				}
+				format = f
+			default:
+				r.multiErr.append(fmt.Errorf("found unknown response format %s", r.responseFormat))
+			}
+
+			switch format {
+			case targetFormatJSON:
 				if err := json.NewDecoder(result.res.Body).Decode(target); err != nil {
 					r.multiErr.append(err)
 				}
-			case ResponseFormatXML:
+			case targetFormatXML:
 				if err := xml.NewDecoder(result.res.Body).Decode(target); err != nil {
 					r.multiErr.append(err)
 				}
-			case ResponseFormatBytes:
+			case targetFormatBytes:
 				b, err := ioutil.ReadAll(result.res.Body)
 				if err != nil {
 					r.multiErr.append(err)
 				}
 				reflect.ValueOf(target).Elem().Set(reflect.ValueOf(b))
-			default:
-				r.multiErr.append(fmt.Errorf("found unknown response format %s", r.responseFormat))
 			}
 		}
 	}

@@ -3,6 +3,7 @@ package rekwest
 import (
 	"context"
 	"io"
+	"mime"
 	"net/http"
 	"strings"
 	"time"
@@ -63,10 +64,31 @@ type ResponseFormat string
 
 // A list of supported `ResponseFormat`s.
 const (
-	ResponseFormatJSON  ResponseFormat = "json"
-	ResponseFormatXML   ResponseFormat = "xml"
-	ResponseFormatBytes ResponseFormat = "bytes"
+	ResponseFormatContentType ResponseFormat = "content-type"
+	ResponseFormatJSON        ResponseFormat = "json"
+	ResponseFormatXML         ResponseFormat = "xml"
+	ResponseFormatBytes       ResponseFormat = "bytes"
 )
+
+type targetFormat string
+
+const (
+	targetFormatJSON  targetFormat = "json"
+	targetFormatXML   targetFormat = "xml"
+	targetFormatBytes targetFormat = "bytes"
+)
+
+func inferTargetFormat(contentType string) (targetFormat, error) {
+	m, _, err := mime.ParseMediaType(contentType)
+	switch m {
+	case "application/json":
+		return targetFormatJSON, err
+	case "text/xml", "application/xml":
+		return targetFormatXML, err
+	default:
+		return targetFormatBytes, err
+	}
+}
 
 // New creates a new Rekwest that will perform requests against the given URL.
 // It defaults to performing GET requests and no body, expecting JSON to be sent
@@ -78,7 +100,7 @@ func New(url string) Rekwest {
 		method:         http.MethodGet,
 		header:         http.Header{},
 		context:        context.Background(),
-		responseFormat: ResponseFormatJSON,
+		responseFormat: ResponseFormatContentType,
 	}
 }
 

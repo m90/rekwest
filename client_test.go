@@ -35,6 +35,7 @@ func TestRekwest(t *testing.T) {
 	}{
 		"default": {
 			func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
 				w.Write([]byte(`{"ok":true, "animal":"platypus"}`))
 			},
 			func(r Rekwest) {},
@@ -47,11 +48,10 @@ func TestRekwest(t *testing.T) {
 		},
 		"xml payload": {
 			func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "text/xml")
 				w.Write([]byte(`<responseType><ok>true</ok><animal>platypus</animal></responseType>`))
 			},
-			func(r Rekwest) {
-				r.ResponseFormat(ResponseFormatXML)
-			},
+			func(r Rekwest) {},
 			[]interface{}{&responseType{}},
 			[]interface{}{&responseType{
 				OK:     true,
@@ -63,13 +63,14 @@ func TestRekwest(t *testing.T) {
 			func(w http.ResponseWriter, r *http.Request) {
 				switch r.Method {
 				case http.MethodPost:
+					w.Header().Set("Content-Type", "text/plain")
 					w.Write([]byte("ok!"))
 				default:
 					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 				}
 			},
 			func(r Rekwest) {
-				r.Method(http.MethodPost).ResponseFormat(ResponseFormatBytes)
+				r.Method(http.MethodPost)
 			},
 			[]interface{}{&[]byte{}},
 			[]interface{}{&[]byte{'o', 'k', '!'}},
@@ -79,6 +80,7 @@ func TestRekwest(t *testing.T) {
 			func(w http.ResponseWriter, r *http.Request) {
 				switch r.Method {
 				case http.MethodPost:
+					w.Header().Set("Content-Type", "text/plain")
 					w.Write([]byte("ok!"))
 				default:
 					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -102,6 +104,7 @@ func TestRekwest(t *testing.T) {
 		},
 		"bad json payload": {
 			func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
 				w.Write([]byte(`{"animal": "platypus", "ok}`))
 			},
 			func(r Rekwest) {},
@@ -111,11 +114,10 @@ func TestRekwest(t *testing.T) {
 		},
 		"bad xml payload": {
 			func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 				w.Write([]byte(`<animal`))
 			},
-			func(r Rekwest) {
-				r.ResponseFormat(ResponseFormatXML)
-			},
+			func(r Rekwest) {},
 			[]interface{}{&responseType{}},
 			[]interface{}{&responseType{}},
 			errors.New("XML syntax error on line 1: unexpected EOF"),
@@ -126,13 +128,14 @@ func TestRekwest(t *testing.T) {
 					http.Error(w, "bad credentials", http.StatusUnauthorized)
 					return
 				}
+				w.Header().Set("Content-Type", "text/plain")
 				w.Write([]byte("OK"))
 			},
 			func(r Rekwest) {
 				r.BasicAuth("username", "secret")
 			},
-			[]interface{}{},
-			[]interface{}{},
+			[]interface{}{&[]byte{}},
+			[]interface{}{&[]byte{'O', 'K'}},
 			nil,
 		},
 		"basic auth bad": {
@@ -141,6 +144,7 @@ func TestRekwest(t *testing.T) {
 					http.Error(w, "bad credentials", http.StatusUnauthorized)
 					return
 				}
+				w.Header().Set("Content-Type", "text/plain")
 				w.Write([]byte("OK"))
 			},
 			func(r Rekwest) {
@@ -156,10 +160,11 @@ func TestRekwest(t *testing.T) {
 					http.Error(w, "bad Authorization header", http.StatusUnauthorized)
 					return
 				}
+				w.Header().Set("Content-Type", "text/plain")
 				w.Write([]byte("OK"))
 			},
 			func(r Rekwest) {
-				r.BearerToken("secret").ResponseFormat(ResponseFormatBytes)
+				r.BearerToken("secret")
 			},
 			[]interface{}{&[]byte{}},
 			[]interface{}{&[]byte{'O', 'K'}},
@@ -171,10 +176,11 @@ func TestRekwest(t *testing.T) {
 					http.Error(w, "bad Authorization header", http.StatusUnauthorized)
 					return
 				}
+				w.Header().Set("Content-Type", "text/plain")
 				w.Write([]byte("OK"))
 			},
 			func(r Rekwest) {
-				r.BearerToken("dunno").ResponseFormat(ResponseFormatBytes)
+				r.BearerToken("dunno")
 			},
 			[]interface{}{&[]byte{}},
 			[]interface{}{&[]byte{}},
@@ -182,6 +188,7 @@ func TestRekwest(t *testing.T) {
 		},
 		"bytes body": {
 			func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "text/plain")
 				b, _ := ioutil.ReadAll(r.Body)
 				if string(b) == "yes" {
 					w.Write([]byte("no"))
@@ -190,7 +197,7 @@ func TestRekwest(t *testing.T) {
 				w.Write([]byte("yes"))
 			},
 			func(r Rekwest) {
-				r.BytesBody([]byte("yes")).ResponseFormat(ResponseFormatBytes)
+				r.BytesBody([]byte("yes"))
 			},
 			[]interface{}{&[]byte{}},
 			[]interface{}{&[]byte{'n', 'o'}},
@@ -204,12 +211,13 @@ func TestRekwest(t *testing.T) {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
+				w.Header().Set("Content-Type", "text/plain")
 				w.Write([]byte(data.Animal))
 			},
 			func(r Rekwest) {
 				r.JSONBody(responseType{
 					Animal: "dog",
-				}).ResponseFormat(ResponseFormatBytes)
+				})
 			},
 			[]interface{}{&[]byte{}},
 			[]interface{}{&[]byte{'d', 'o', 'g'}},
@@ -309,8 +317,12 @@ func TestRekwest(t *testing.T) {
 				w.Write([]byte("ok"))
 			},
 			func(r Rekwest) {
-				ctx, _ := context.WithTimeout(context.Background(), time.Second)
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 				r.Context(ctx)
+				go func() {
+					time.Sleep(time.Hour)
+					cancel()
+				}()
 			},
 			[]interface{}{},
 			[]interface{}{},
@@ -322,8 +334,12 @@ func TestRekwest(t *testing.T) {
 				w.Write([]byte("ok"))
 			},
 			func(r Rekwest) {
-				ctx, _ := context.WithTimeout(context.Background(), time.Millisecond)
+				ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 				r.Context(ctx)
+				go func() {
+					time.Sleep(time.Hour)
+					cancel()
+				}()
 			},
 			[]interface{}{},
 			[]interface{}{},
