@@ -130,7 +130,7 @@ type doResult struct {
 
 func (r *request) Do(targets ...interface{}) error {
 	if !r.OK() {
-		return r.multiErr
+		return fmt.Errorf("could not perform request: %v", r.multiErr)
 	}
 
 	timeout := context.Background()
@@ -170,7 +170,7 @@ func (r *request) Do(targets ...interface{}) error {
 		return r.context.Err()
 	case result := <-receive:
 		if result.err != nil {
-			return result.err
+			return fmt.Errorf("error performing the request: %v", result.err)
 		}
 
 		if result.res.Body != nil {
@@ -230,7 +230,7 @@ func (r *request) Do(targets ...interface{}) error {
 	}
 
 	if !r.OK() {
-		return r.multiErr
+		return fmt.Errorf("error handling the response: %v", r.multiErr)
 	}
 	return nil
 }

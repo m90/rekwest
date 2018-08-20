@@ -514,7 +514,7 @@ func TestRekwest(t *testing.T) {
 
 func TestRekwest_BadURL(t *testing.T) {
 	r := New("%%%bbbrrrrroookkkken%%251%%``")
-	if err := r.Do(); err == nil || err.Error() != "parse %%%bbbrrrrroookkkken%%251%%``: invalid URL escape \"%%%\"" {
+	if err := r.Do(); err == nil || err.Error() != "error performing the request: parse %%%bbbrrrrroookkkken%%251%%``: invalid URL escape \"%%%\"" {
 		t.Errorf("Unexpected error %v", err)
 	}
 }
