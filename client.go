@@ -167,7 +167,7 @@ func (r *request) Do(targets ...interface{}) error {
 	case <-timeout.Done():
 		return fmt.Errorf("exceeded request timeout of %v", r.timeout)
 	case <-r.context.Done():
-		return r.context.Err()
+		return fmt.Errorf("provided context was cancelled: %v", r.context.Err())
 	case result := <-receive:
 		if result.err != nil {
 			return fmt.Errorf("error performing the request: %v", result.err)
